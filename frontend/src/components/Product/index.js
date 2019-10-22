@@ -5,7 +5,9 @@ class FormProduct extends Component {
 
     state = {
         model: {
-            code: 0, description: '', value: 0
+            code: 0,
+            description: '',
+            value: 0
         }
     };
 
