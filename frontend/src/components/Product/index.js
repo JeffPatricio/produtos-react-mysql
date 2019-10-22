@@ -1,35 +1,63 @@
 import React, { Component } from 'react';
-import {
-    Table,
-    Button,
-    Form,
-    FormGroup,
-    Label,
-    Input
-} from 'reactstrap';
+import { Table, Button, Form, FormGroup, Label, Input } from 'reactstrap';
 
 class FormProduct extends Component {
+
+    state = {
+        model: {
+            code: 0, description: '', value: 0
+        }
+    };
+
+    setValues = (event, field) => {
+        const { model } = this.state;
+        model[field] = event.target.value;
+        this.setState({ model });
+        console.log(this.state.model);
+    };
+
+    create = () => {
+        const data = {
+            description: this.state.model.description,
+            value: parseFloat(this.state.model.value)
+        };
+
+        this.props.productCreate({ product: data });
+    };
+
     render() {
         return (
             <Form>
                 <FormGroup>
-                    <Label for="description">Description</Label>
-                    <Input id="description" name="description" type="text" placeholder="Product description..." />
+                    <div className="form-row">
+                        <div className="col-md-12">
+                            <Label for="description">Description</Label>
+                            <Input id="description" name="description" type="text" placeholder="Product description..." value={this.state.model.description}
+                                onChange={e => this.setValues(e, 'description')} />
+                        </div>
+                    </div>
                 </FormGroup>
                 <FormGroup>
                     <div className="form-row">
                         <div className="col-md-6">
-                            <Label for="price">Price</Label>
-                            <Input id="price" name="price" type="number" min="0.1" step="0.1" placeholder="Product price..." />
+                            <Label for="value">Price</Label>
+                            <Input id="value" name="value" type="number" min="0.1" step="0.1" placeholder="R$" value={this.state.model.value}
+                                onChange={e => this.setValues(e, 'value')} />
                         </div>
                     </div>
                 </FormGroup>
+                <br />
+                <Button color="info" block onClick={this.create}>Save</Button>
             </Form>
         );
     }
 }
 
 class ListProduct extends Component {
+
+    delete = (code) => {
+        this.props.deleteProduct(code);
+    }
 
     render() {
         const { products } = this.props;
@@ -57,7 +85,7 @@ class ListProduct extends Component {
                                             <Button color="info" size="sm">Edit</Button>
                                         </div>
                                         <div className="col-md-6 col-12 text-left">
-                                            <Button color="danger" size="sm">Delete</Button>
+                                            <Button color="danger" size="sm" onClick={e => this.delete(product.code)}>Delete</Button>
                                         </div>
                                     </div>
                                 </td>
@@ -68,12 +96,11 @@ class ListProduct extends Component {
             </Table>
         );
     }
-
 }
 
 export default class ProductBox extends Component {
 
-    url = 'http://localhost:1234/read/products';
+    url = 'http://localhost:1234/';
     header = new Headers();
 
     config = {
@@ -88,7 +115,7 @@ export default class ProductBox extends Component {
     };
 
     componentDidMount() {
-        fetch(this.url, this.config).then(response => {
+        fetch(`${this.url}read/products`, this.config).then(response => {
             return response.json();
         }).then(products => {
             if (products.response) {
@@ -99,16 +126,62 @@ export default class ProductBox extends Component {
         });
     };
 
+    create = (product) => {
+
+        const configRequest = {
+            method: 'POST',
+            body: JSON.stringify(product),
+            mode: 'cors',
+            cache: 'default',
+            headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        };
+
+        fetch(`${this.url}new/product`, configRequest).then(response => {
+            return response.json();
+        }).then(newProduct => {
+            const { products } = this.state;
+            products.push(newProduct.info);
+            this.setState({ products });
+
+        }).catch(error => {
+            console.log("Product search error: ", error);
+        });
+    };
+
+    delete = (code) => {
+
+        const configRequest = {
+            method: 'DELETE',
+            mode: 'cors',
+            cache: 'default',
+            headers: new Headers({
+                'Content-Type': 'application/json'
+            })
+        };
+
+        fetch(`${this.url}delete/product/${code}`, configRequest).then(response => {
+            return response.json();
+        }).then(deleted => {
+            const products = this.state.products.filter(product => product.code != code);
+            this.setState({ products });
+        }).catch(error => {
+            console.log("Product search error: ", error);
+        });
+    }
+
     render() {
         return (
             <div className="row">
-                <div className="col-md-6 col-12">
+                <div className="col-md-4 offset-md-1 col-12">
                     <h2 className="font-weight-bold text-center">Product Registration</h2>
-                    <FormProduct />
+                    <br />
+                    <FormProduct productCreate={this.create} />
                 </div>
-                <div className="col-md-6 col-12">
+                <div className="col-md-6 offset-md-1 col-12">
                     <h2 className="font-weight-bold text-center">Product List</h2>
-                    <ListProduct products={this.state.products} />
+                    <ListProduct products={this.state.products} deleteProduct={this.delete} />
                 </div>
             </div>
         );
