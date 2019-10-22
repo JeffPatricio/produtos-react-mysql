@@ -1,0 +1,21 @@
+@font-face {
+    font-family: 'GreatVibes';
+    src: url('fonts/GreatVibes-Regular.otf');
+}
+
+body {
+    background-image: url("./images/back.png");
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+header {
+    display: flex;
+    height: 60px;
+    border-bottom: 1px solid gray;
+    background-color: #138496;
+    padding-left: 3%;
+    padding-top: 1%;
+    color: honeydew;
+    font-family: 'GreatVibes';
+}
