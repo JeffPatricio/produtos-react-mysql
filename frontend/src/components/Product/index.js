@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { Table, Button, Form, FormGroup, Label, Input } from 'reactstrap';
+import PubSub from 'pubsub-js';
+import { Table, Button, Form, FormGroup, Label, Input, Alert } from 'reactstrap';
 
 class FormProduct extends Component {
 
@@ -15,16 +16,17 @@ class FormProduct extends Component {
         const { model } = this.state;
         model[field] = event.target.value;
         this.setState({ model });
-        console.log(this.state.model);
     };
 
     create = () => {
-        const data = {
-            description: this.state.model.description,
-            value: parseFloat(this.state.model.value)
-        };
+        this.props.productCreate(this.state.model);
+        this.setState({ model: { code: 0, description: '', value: 0 } });
+    };
 
-        this.props.productCreate({ product: data });
+    componentWillMount() {
+        PubSub.subscribe('edit-product', (topic, product) => {
+            this.setState({ model: product });
+        });
     };
 
     render() {
@@ -59,7 +61,11 @@ class ListProduct extends Component {
 
     delete = (code) => {
         this.props.deleteProduct(code);
-    }
+    };
+
+    onEdit = (product) => {
+        PubSub.publish('edit-product', product);
+    };
 
     render() {
         const { products } = this.props;
@@ -80,11 +86,11 @@ class ListProduct extends Component {
                             <tr key={product.code}>
                                 <td>{product.code}</td>
                                 <td>{product.description}</td>
-                                <td>{product.value}</td>
+                                <td>R$ {product.value}</td>
                                 <td>
                                     <div className="row">
                                         <div className="col-md-6 col-12 text-right">
-                                            <Button color="info" size="sm">Edit</Button>
+                                            <Button color="info" size="sm" onClick={e => this.onEdit(product)}>Edit</Button>
                                         </div>
                                         <div className="col-md-6 col-12 text-left">
                                             <Button color="danger" size="sm" onClick={e => this.delete(product.code)}>Delete</Button>
@@ -97,7 +103,7 @@ class ListProduct extends Component {
                 </tbody>
             </Table>
         );
-    }
+    };
 }
 
 export default class ProductBox extends Component {
@@ -113,7 +119,11 @@ export default class ProductBox extends Component {
     };
 
     state = {
-        products: []
+        products: [],
+        message: {
+            text: '',
+            alert: ''
+        }
     };
 
     componentDidMount() {
@@ -128,11 +138,16 @@ export default class ProductBox extends Component {
         });
     };
 
-    create = (product) => {
+    save = (product) => {
+
+        const data = {
+            description: product.description,
+            value: parseFloat(product.value)
+        };
 
         const configRequest = {
             method: 'POST',
-            body: JSON.stringify(product),
+            body: JSON.stringify({ product: data }),
             mode: 'cors',
             cache: 'default',
             headers: new Headers({
@@ -140,13 +155,27 @@ export default class ProductBox extends Component {
             })
         };
 
-        fetch(`${this.url}new/product`, configRequest).then(response => {
-            return response.json();
-        }).then(newProduct => {
-            const { products } = this.state;
-            products.push(newProduct.info);
-            this.setState({ products });
+        let urlApi = `${this.url}new/product`;
 
+        if (product.code !== 0) {
+            configRequest.method = 'PUT';
+            configRequest.body = JSON.stringify({ dataProduct: data });
+            urlApi = `${this.url}update/product/${product.code}`;
+        }
+
+        fetch(urlApi, configRequest).then(response => {
+            return response.json();
+        }).then(objResponse => {
+            if (product.code !== 0) {
+                const { products } = this.state;
+                const position = products.findIndex(prod => prod.code == objResponse.info.code);
+                products[position] = objResponse.info;
+                this.setState({ products, message: { text: 'Successfully updated product.', alert: 'info' } });
+            } else {
+                const { products } = this.state;
+                products.push(objResponse.info);
+                this.setState({ products, message: { text: 'Successfully created product.', alert: 'success' } });
+            }
         }).catch(error => {
             console.log("Product search error: ", error);
         });
@@ -166,7 +195,7 @@ export default class ProductBox extends Component {
         fetch(`${this.url}delete/product/${code}`, configRequest).then(response => {
             return response.json();
         }).then(deleted => {
-            const products = this.state.products.filter(product => product.code != code);
+            const products = this.state.products.filter(product => product.code !== code);
             this.setState({ products });
         }).catch(error => {
             console.log("Product search error: ", error);
@@ -175,15 +204,27 @@ export default class ProductBox extends Component {
 
     render() {
         return (
-            <div className="row">
-                <div className="col-md-4 offset-md-1 col-12">
-                    <h2 className="font-weight-bold text-center">Product Registration</h2>
-                    <br />
-                    <FormProduct productCreate={this.create} />
+            <div>
+                <div className="row">
+                    <div className="col-md-6 offset-md-3 col-12">
+                        {
+                            this.state.message.text !== '' ? (
+                                <Alert color={this.state.message.alert}> {this.state.message.text}</Alert>
+                            ) : ''
+                        }
+                    </div>
                 </div>
-                <div className="col-md-6 offset-md-1 col-12">
-                    <h2 className="font-weight-bold text-center">Product List</h2>
-                    <ListProduct products={this.state.products} deleteProduct={this.delete} />
+                <div className="row">
+                    <div className="col-md-4 offset-md-1 col-12">
+                        <h2 className="font-weight-bold text-center">Product Registration</h2>
+                        <br />
+                        <FormProduct productCreate={this.save} />
+                    </div>
+                    <div className="col-md-6 offset-md-1 col-12">
+                        <h2 className="font-weight-bold text-center">Product List</h2>
+                        <br />
+                        <ListProduct products={this.state.products} deleteProduct={this.delete} />
+                    </div>
                 </div>
             </div>
         );
