@@ -7,6 +7,7 @@ body {
     background-image: url("./images/back.png");
     background-size: cover;
     background-repeat: no-repeat;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 }
 
 header {

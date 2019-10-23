@@ -123,7 +123,8 @@ export default class ProductBox extends Component {
         message: {
             text: '',
             alert: ''
-        }
+        },
+        errorSearch: ''
     };
 
     componentDidMount() {
@@ -134,51 +135,66 @@ export default class ProductBox extends Component {
                 this.setState({ products: products.info });
             }
         }).catch(error => {
+            this.setState({ errorSearch: 'show' });
             console.log("Product search error: ", error);
         });
     };
 
     save = (product) => {
 
-        const data = {
-            description: product.description,
-            value: parseFloat(product.value)
-        };
+        if (product.description == '' || product.value == 0) {
+            this.setState({
+                message: { text: 'Need to fill in all fields.', alert: 'warning' }
+            });
+            this.timerMessage(2000);
+        } else {
 
-        const configRequest = {
-            method: 'POST',
-            body: JSON.stringify({ product: data }),
-            mode: 'cors',
-            cache: 'default',
-            headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        };
+            const data = {
+                description: product.description,
+                value: parseFloat(product.value)
+            };
 
-        let urlApi = `${this.url}new/product`;
+            const configRequest = {
+                method: 'POST',
+                body: JSON.stringify({ product: data }),
+                mode: 'cors',
+                cache: 'default',
+                headers: new Headers({
+                    'Content-Type': 'application/json'
+                })
+            };
 
-        if (product.code !== 0) {
-            configRequest.method = 'PUT';
-            configRequest.body = JSON.stringify({ dataProduct: data });
-            urlApi = `${this.url}update/product/${product.code}`;
-        }
+            let urlApi = `${this.url}new/product`;
 
-        fetch(urlApi, configRequest).then(response => {
-            return response.json();
-        }).then(objResponse => {
             if (product.code !== 0) {
-                const { products } = this.state;
-                const position = products.findIndex(prod => prod.code == objResponse.info.code);
-                products[position] = objResponse.info;
-                this.setState({ products, message: { text: 'Successfully updated product.', alert: 'info' } });
-            } else {
-                const { products } = this.state;
-                products.push(objResponse.info);
-                this.setState({ products, message: { text: 'Successfully created product.', alert: 'success' } });
+                configRequest.method = 'PUT';
+                configRequest.body = JSON.stringify({ dataProduct: data });
+                urlApi = `${this.url}update/product/${product.code}`;
             }
-        }).catch(error => {
-            console.log("Product search error: ", error);
-        });
+
+            fetch(urlApi, configRequest).then(response => {
+                return response.json();
+            }).then(objResponse => {
+                if (product.code !== 0) {
+                    const { products } = this.state;
+                    const position = products.findIndex(prod => prod.code === objResponse.info.code);
+                    products[position] = objResponse.info;
+                    this.setState({ products, message: { text: 'Successfully updated product.', alert: 'info' } });
+                    this.timerMessage(2000);
+                } else {
+                    const { products } = this.state;
+                    products.push(objResponse.info);
+                    this.setState({ products, message: { text: 'Successfully created product.', alert: 'success' } });
+                    this.timerMessage(2000);
+                }
+            }).catch(error => {
+                this.setState({
+                    message: { text: 'Error adding or updating product.', alert: 'danger' }
+                });
+                this.timerMessage(2000);
+                console.log("Product save error: ", error);
+            });
+        }
     };
 
     delete = (code) => {
@@ -196,17 +212,27 @@ export default class ProductBox extends Component {
             return response.json();
         }).then(deleted => {
             const products = this.state.products.filter(product => product.code !== code);
-            this.setState({ products });
+            this.setState({ products, message: { text: 'Successfully deleted product.', alert: 'info' } });
+            this.timerMessage(2000);
         }).catch(error => {
-            console.log("Product search error: ", error);
+            this.setState({
+                message: { text: 'Error deleting product.', alert: 'danger' }
+            });
+            console.log("Product delete error: ", error);
         });
     }
+
+    timerMessage = (time) => {
+        setTimeout(() => {
+            this.setState({ message: { text: '', alert: '' } });
+        }, time);
+    };
 
     render() {
         return (
             <div>
                 <div className="row">
-                    <div className="col-md-6 offset-md-3 col-12">
+                    <div className="col-md-8 offset-md-2 col-12 text-center">
                         {
                             this.state.message.text !== '' ? (
                                 <Alert color={this.state.message.alert}> {this.state.message.text}</Alert>
@@ -224,6 +250,13 @@ export default class ProductBox extends Component {
                         <h2 className="font-weight-bold text-center">Product List</h2>
                         <br />
                         <ListProduct products={this.state.products} deleteProduct={this.delete} />
+                        <div className="text-center">
+                            {
+                                this.state.errorSearch !== '' ? (
+                                    <Alert color="danger"> Error finding registered products.</Alert>
+                                ) : ''
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
