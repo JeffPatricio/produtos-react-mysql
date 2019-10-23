@@ -20,3 +20,15 @@ header {
     color: honeydew;
     font-family: 'GreatVibes';
 }
+
+.formRegistration, .btnList {
+    margin-top: 5%;
+}
+
+.btnList {
+    margin-top: 20%;
+}
+
+.theadProducts {
+    background-color: #1ba3b8;
+}

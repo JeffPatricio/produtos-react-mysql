@@ -23,6 +23,10 @@ class FormProduct extends Component {
         this.setState({ model: { code: 0, description: '', value: 0 } });
     };
 
+    list = () => {
+        this.props.list();
+    };
+
     componentWillMount() {
         PubSub.subscribe('edit-product', (topic, product) => {
             this.setState({ model: product });
@@ -52,7 +56,12 @@ class FormProduct extends Component {
                 </FormGroup>
                 <br />
                 <Button color="info" block onClick={this.create}>Save</Button>
-            </Form>
+                <div className="form-row">
+                    <div className="col-md-6 offset-md-3">
+                        <Button color="success" block onClick={this.list} className="btnList">List of Products &gt;&gt;</Button>
+                    </div>
+                </div>
+            </Form >
         );
     }
 }
@@ -67,41 +76,53 @@ class ListProduct extends Component {
         PubSub.publish('edit-product', product);
     };
 
+    newProduct = () => {
+        this.props.newProduct();
+    }
+
     render() {
         const { products } = this.props;
 
         return (
-            <Table className="table-bordered text-center">
-                <thead className="thead-dark">
-                    <tr>
-                        <th>Code</th>
-                        <th>Description</th>
-                        <th>Price</th>
-                        <th>Options</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {
-                        products.map(product => (
-                            <tr key={product.code}>
-                                <td>{product.code}</td>
-                                <td>{product.description}</td>
-                                <td>R$ {product.value}</td>
-                                <td>
-                                    <div className="row">
-                                        <div className="col-md-6 col-12 text-right">
-                                            <Button color="info" size="sm" onClick={e => this.onEdit(product)}>Edit</Button>
+            <div>
+                <Table className="text-center" hover>
+                    <thead className="theadProducts">
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Options</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            products.map(product => (
+                                <tr key={product.code}>
+                                    <td>{product.code}</td>
+                                    <td>{product.description}</td>
+                                    <td>R$ {product.value}</td>
+                                    <td>
+                                        <div className="row">
+                                            <div className="col-md-6 col-12 text-right">
+                                                <Button color="info" size="sm" onClick={e => this.onEdit(product)}>Edit</Button>
+                                            </div>
+                                            <div className="col-md-6 col-12 text-left">
+                                                <Button color="danger" size="sm" onClick={e => this.delete(product.code)}>Delete</Button>
+                                            </div>
                                         </div>
-                                        <div className="col-md-6 col-12 text-left">
-                                            <Button color="danger" size="sm" onClick={e => this.delete(product.code)}>Delete</Button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                    }
-                </tbody>
-            </Table>
+                                    </td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </Table>
+
+                <div className="form-row">
+                    <div className="col-md-6 offset-md-3">
+                        <Button color="success" block onClick={this.newProduct} className="btnList">&lt;&lt; New Product</Button>
+                    </div>
+                </div>
+            </div>
         );
     };
 }
@@ -124,7 +145,8 @@ export default class ProductBox extends Component {
             text: '',
             alert: ''
         },
-        errorSearch: ''
+        errorSearch: '',
+        list: 'hide'
     };
 
     componentDidMount() {
@@ -228,6 +250,11 @@ export default class ProductBox extends Component {
         }, time);
     };
 
+    showList = () => {
+        const { list } = this.state;
+        (list == 'hide') ? this.setState({ list: 'show' }) : this.setState({ list: 'hide' });
+    }
+
     render() {
         return (
             <div>
@@ -241,23 +268,27 @@ export default class ProductBox extends Component {
                     </div>
                 </div>
                 <div className="row">
-                    <div className="col-md-4 offset-md-1 col-12">
-                        <h2 className="font-weight-bold text-center">Product Registration</h2>
-                        <br />
-                        <FormProduct productCreate={this.save} />
-                    </div>
-                    <div className="col-md-6 offset-md-1 col-12">
-                        <h2 className="font-weight-bold text-center">Product List</h2>
-                        <br />
-                        <ListProduct products={this.state.products} deleteProduct={this.delete} />
-                        <div className="text-center">
-                            {
-                                this.state.errorSearch !== '' ? (
-                                    <Alert color="danger"> Error finding registered products.</Alert>
-                                ) : ''
-                            }
-                        </div>
-                    </div>
+                    {
+                        this.state.list === 'hide' ? (
+                            <div className="col-md-4 offset-md-4 col-12 formRegistration">
+                                <h2 className="font-weight-bold text-center">Product Registration</h2>
+                                <br />
+                                <FormProduct productCreate={this.save} list={this.showList} />
+                            </div>
+                        ) :
+                            <div className="col-md-6 offset-md-3 col-12">
+                                <h2 className="font-weight-bold text-center">Product List</h2>
+                                <br />
+                                <ListProduct products={this.state.products} deleteProduct={this.delete} newProduct={this.showList} />
+                                <div className="text-center">
+                                    {
+                                        this.state.errorSearch !== '' ? (
+                                            <Alert color="danger"> Error finding registered products.</Alert>
+                                        ) : ''
+                                    }
+                                </div>
+                            </div>
+                    }
                 </div>
             </div>
         );
