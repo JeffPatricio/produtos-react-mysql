@@ -5,11 +5,11 @@ import { Table, Button, Form, FormGroup, Label, Input, Alert } from 'reactstrap'
 class FormProduct extends Component {
 
     state = {
-        model: {
+        model: this.props.productEdit != null ? (this.props.productEdit) : ({
             code: 0,
             description: '',
             value: 0
-        }
+        }),
     };
 
     setValues = (event, field) => {
@@ -33,6 +33,18 @@ class FormProduct extends Component {
         });
     };
 
+    cancelUpdate = () => {
+        this.setState({ model: { code: 0, description: '', value: 0 } });
+        this.props.cleanUpdate();
+    };
+
+    keypress = (e) => {
+        console.log("CHAMOU", e);
+        if (e.which == 13) {
+            this.create();
+        }
+    };
+
     render() {
         return (
             <Form>
@@ -40,17 +52,23 @@ class FormProduct extends Component {
                     <div className="form-row">
                         <div className="col-md-12">
                             <Label for="description">Description</Label>
-                            <Input id="description" name="description" type="text" placeholder="Product description..." value={this.state.model.description}
-                                onChange={e => this.setValues(e, 'description')} />
+                            <Input id="description" name="description" type="text" placeholder="Product description..."
+                                value={
+                                    this.state.model.description
+                                }
+                                onChange={e => this.setValues(e, 'description')} onKeyPress={e => this.keypress(e)} />
                         </div>
                     </div>
                 </FormGroup>
                 <FormGroup>
                     <div className="form-row">
                         <div className="col-md-6">
-                            <Label for="value">Price</Label>
-                            <Input id="value" name="value" type="number" min="0.1" step="0.1" placeholder="R$" value={this.state.model.value}
-                                onChange={e => this.setValues(e, 'value')} />
+                            <Label for="value">Price R$</Label>
+                            <Input id="value" name="value" type="number" min="0.1" step="0.1" placeholder="R$"
+                                value={
+                                    this.state.model.value
+                                }
+                                onChange={e => this.setValues(e, 'value')} onKeyPress={e => this.keypress(e)} />
                         </div>
                     </div>
                 </FormGroup>
@@ -58,12 +76,18 @@ class FormProduct extends Component {
                 <Button color="info" block onClick={this.create}>Save</Button>
                 <div className="form-row">
                     <div className="col-md-6 offset-md-3">
-                        <Button color="success" block onClick={this.list} className="btnList">List of Products &gt;&gt;</Button>
+                        {
+                            this.state.model.code == 0 ? (
+                                <Button color="success" block onClick={this.list} className="btnList">List of Products &gt;&gt;</Button>
+                            ) : (
+                                    <Button color="danger" block onClick={this.cancelUpdate} className="btnCancel">Cancel</Button>
+                                )
+                        }
                     </div>
                 </div>
             </Form >
         );
-    }
+    };
 }
 
 class ListProduct extends Component {
@@ -73,56 +97,54 @@ class ListProduct extends Component {
     };
 
     onEdit = (product) => {
-        PubSub.publish('edit-product', product);
+        this.props.editProduct(product)
     };
 
     newProduct = () => {
         this.props.newProduct();
-    }
+    };
 
     render() {
         const { products } = this.props;
 
         return (
             <div>
-                <Table className="text-center" hover>
-                    <thead className="theadProducts">
-                        <tr>
-                            <th>Code</th>
-                            <th>Description</th>
-                            <th>Price</th>
-                            <th>Options</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {
-                            products.map(product => (
-                                <tr key={product.code}>
-                                    <td>{product.code}</td>
-                                    <td>{product.description}</td>
-                                    <td>R$ {product.value}</td>
-                                    <td>
-                                        <div className="row">
-                                            <div className="col-md-6 col-12 text-right">
-                                                <Button color="info" size="sm" onClick={e => this.onEdit(product)}>Edit</Button>
-                                            </div>
-                                            <div className="col-md-6 col-12 text-left">
-                                                <Button color="danger" size="sm" onClick={e => this.delete(product.code)}>Delete</Button>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        }
-                    </tbody>
-                </Table>
+                <div className="supTable col-md-12 col-12">
+                    <Table className="text-center" hover>
+                        <thead className="theadProducts">
+                            <tr>
+                                <th className="col1">Code</th>
+                                <th className="col2 colDescription">Description</th>
+                                <th className="col3">Price</th>
+                                <th className="col4">Options</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bodyTable">
+                            {
+                                products.map(product => (
+                                    <tr key={product.code}>
+                                        <td className="col1">{product.code}</td>
+                                        <td className="col2">{product.description}</td>
+                                        <td className="col3">R$ {product.value}</td>
+                                        <td className="col4">
 
+                                            <img src={require('../../images/pencil.png')} className="iconEdit" onClick={e => this.onEdit(product)} title="Edit product"></img>
+
+                                            <img src={require('../../images/delete.png')} className="iconDelete" onClick={e => this.delete(product.code)} title="Delete product"></img>
+
+                                        </td>
+                                    </tr>
+                                ))
+                            }
+                        </tbody>
+                    </Table>
+                </div>
                 <div className="form-row">
                     <div className="col-md-6 offset-md-3">
                         <Button color="success" block onClick={this.newProduct} className="btnList">&lt;&lt; New Product</Button>
                     </div>
                 </div>
-            </div>
+            </div >
         );
     };
 }
@@ -146,7 +168,8 @@ export default class ProductBox extends Component {
             alert: ''
         },
         errorSearch: '',
-        list: 'hide'
+        list: false,
+        productEdit: null
     };
 
     componentDidMount() {
@@ -168,7 +191,7 @@ export default class ProductBox extends Component {
             this.setState({
                 message: { text: 'Need to fill in all fields.', alert: 'warning' }
             });
-            this.timerMessage(2000);
+            this.timerMessage(1000);
         } else {
 
             const data = {
@@ -201,13 +224,14 @@ export default class ProductBox extends Component {
                     const { products } = this.state;
                     const position = products.findIndex(prod => prod.code === objResponse.info.code);
                     products[position] = objResponse.info;
+                    this.setState({ list: false, productEdit: null });
                     this.setState({ products, message: { text: 'Successfully updated product.', alert: 'info' } });
-                    this.timerMessage(2000);
+                    this.timerMessage(1000);
                 } else {
                     const { products } = this.state;
                     products.push(objResponse.info);
                     this.setState({ products, message: { text: 'Successfully created product.', alert: 'success' } });
-                    this.timerMessage(2000);
+                    this.timerMessage(1000);
                 }
             }).catch(error => {
                 this.setState({
@@ -235,7 +259,7 @@ export default class ProductBox extends Component {
         }).then(deleted => {
             const products = this.state.products.filter(product => product.code !== code);
             this.setState({ products, message: { text: 'Successfully deleted product.', alert: 'info' } });
-            this.timerMessage(2000);
+            this.timerMessage(1000);
         }).catch(error => {
             this.setState({
                 message: { text: 'Error deleting product.', alert: 'danger' }
@@ -252,8 +276,20 @@ export default class ProductBox extends Component {
 
     showList = () => {
         const { list } = this.state;
-        (list == 'hide') ? this.setState({ list: 'show' }) : this.setState({ list: 'hide' });
-    }
+        if (list) {
+            this.componentDidMount();
+        }
+        this.setState({ list: !list });
+    };
+
+    showEditProduct = (product) => {
+        this.setState({ list: false, productEdit: product });
+    };
+
+    cleanEditProduct = () => {
+        this.componentDidMount();
+        this.setState({ list: false, productEdit: null });
+    };
 
     render() {
         return (
@@ -269,22 +305,38 @@ export default class ProductBox extends Component {
                 </div>
                 <div className="row">
                     {
-                        this.state.list === 'hide' ? (
+                        !this.state.list ? (
                             <div className="col-md-4 offset-md-4 col-12 formRegistration">
-                                <h2 className="font-weight-bold text-center">Product Registration</h2>
+                                <h2 className="font-weight-bold text-center">
+                                    {
+                                        this.state.productEdit == null ? (
+                                            'Product Registration'
+                                        ) : (
+                                                'Product Update'
+                                            )
+                                    }
+                                </h2>
                                 <br />
-                                <FormProduct productCreate={this.save} list={this.showList} />
+                                <FormProduct productCreate={this.save} list={this.showList} productEdit={this.state.productEdit} cleanUpdate={this.cleanEditProduct} />
                             </div>
                         ) :
-                            <div className="col-md-6 offset-md-3 col-12">
+                            <div className="col-md-8 offset-md-2 col-12">
                                 <h2 className="font-weight-bold text-center">Product List</h2>
                                 <br />
-                                <ListProduct products={this.state.products} deleteProduct={this.delete} newProduct={this.showList} />
                                 <div className="text-center">
                                     {
                                         this.state.errorSearch !== '' ? (
-                                            <Alert color="danger"> Error finding registered products.</Alert>
-                                        ) : ''
+                                            <div className="text-center">
+                                                <Alert color="danger"> Error finding registered products.</Alert>
+                                                <div className="row">
+                                                    <div className="col-md-4 offset-md-4 col-12">
+                                                        <Button color="success" block onClick={this.showList} className="btnError">&lt;&lt; Return</Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                                <ListProduct products={this.state.products} deleteProduct={this.delete} newProduct={this.showList} editProduct={this.showEditProduct} />
+                                            )
                                     }
                                 </div>
                             </div>
@@ -292,5 +344,5 @@ export default class ProductBox extends Component {
                 </div>
             </div>
         );
-    }
+    };
 }

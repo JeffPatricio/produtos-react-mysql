@@ -7,6 +7,7 @@ body {
     background-image: url("./images/back.png");
     background-size: cover;
     background-repeat: no-repeat;
+    background-attachment: fixed;
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -25,10 +26,90 @@ header {
     margin-top: 5%;
 }
 
-.btnList {
-    margin-top: 20%;
+.btnList, .btnCancel, .btnError {
+    margin-top: 10%;
 }
 
 .theadProducts {
     background-color: #1ba3b8;
+}
+
+.theadProducts tr{
+    display:block;
+    width: 885px;
+}
+
+.bodyTable{
+    display:block;
+    overflow: auto;
+    height: 300px;
+    width: 880px;
+    overflow-x: hidden;
+}
+
+.col1{
+    width: 100px;
+}
+
+.col2{
+    width: 400px;
+}
+
+.col3{
+    width: 300px;
+}
+
+.col4{
+    width: 130px;
+   align-content: center;
+}
+
+.colDescription{
+    width: 360px;
+}
+
+.iconEdit{
+    margin-right: 5%;
+}
+
+.iconEdit, .iconDelete{
+    width: 25%;
+    cursor: pointer;
+}
+
+.iconEdit:hover, .iconDelete:hover{
+    width: 30%;
+}
+
+@media (max-width: 480px) { 
+    
+   .supTable{
+       overflow-x: auto;
+   }
+
+   .btnList{
+       margin-bottom: 10%;
+   }
+}
+
+@media (max-width: 768px) {
+
+    .supTable{
+        overflow-x: auto;
+    }
+ 
+    .btnList{
+        margin-bottom: 10%;
+    }
+}
+
+@media (max-width: 992px) {
+
+    .supTable{
+        overflow-x: auto;
+    }
+ 
+    .btnList{
+        margin-bottom: 10%;
+    }
 }
